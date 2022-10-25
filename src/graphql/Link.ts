@@ -85,5 +85,21 @@ export const LinkMutation = extendType({  // 1
                 return link;
             }
         });
+
+        // Delete a link mutation
+        t.nonNull.field("deleteLink", {
+            type: "Link",
+            args: {
+                id: nonNull(stringArg()),
+            },
+            resolve(parent, args, context) {
+                const { id } = args;
+                const link = links.find((link) => link.id === Number(id));
+                if (link) {
+                    links = links.filter((link) => link.id !== Number(id));
+                }
+                return link;
+            }
+        });
     },
 });
