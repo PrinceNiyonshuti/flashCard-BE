@@ -31,6 +31,15 @@ export const LinkQuery = extendType({
                 return links;
             },
         });
+        t.nonNull.list.nonNull.field("feedById", {
+            type: "Link",
+            args: {
+                id: nonNull(stringArg()),
+            },
+            resolve(parent, args, context, info) {
+                return links.filter((link) => link.id === Number(args.id));
+            }
+        });
     },
 });
 
