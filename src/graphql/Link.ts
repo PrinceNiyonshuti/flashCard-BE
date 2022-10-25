@@ -66,5 +66,24 @@ export const LinkMutation = extendType({  // 1
                 return link;
             },
         });
+
+        // update link mutation 
+        t.nonNull.field("updateLink", {
+            type: "Link",
+            args: {
+                id: nonNull(stringArg()),
+                description: nonNull(stringArg()),
+                url: nonNull(stringArg()),
+            },
+            resolve(parent, args, context) {
+                const { id, description, url } = args;
+                const link = links.find((link) => link.id === Number(id));
+                if (link) {
+                    link.description = description;
+                    link.url = url;
+                }
+                return link;
+            }
+        });
     },
 });
