@@ -44,22 +44,30 @@ export const LinkQuery = extendType({
 });
 
 export const LinkMutation = extendType({  // 1
-    type: "Mutation",    
+    type: "Mutation",
     definition(t) {
-        t.nonNull.field("post", {  // 2
-            type: "Link",  
-            args: {   // 3
+        t.nonNull.field("post", {
+            type: "Link",
+            args: {
                 description: nonNull(stringArg()),
                 url: nonNull(stringArg()),
             },
-            
-            resolve(parent, args, context) {    
-                const newLink = context.prisma.link.create({   // 2
+            resolve(parent, args, context) {   
+                const { description, url } = args;
+                const { userId } = context;
+
+                if (!userId) {  // 1
+                    throw new Error("Cannot post without logging in.");
+                }
+
+                const newLink = context.prisma.link.create({
                     data: {
-                        description: args.description,
-                        url: args.url,
+                        description,
+                        url,
+                        postedBy: { connect: { id: userId } },  // 2
                     },
                 });
+
                 return newLink;
             },
         });
