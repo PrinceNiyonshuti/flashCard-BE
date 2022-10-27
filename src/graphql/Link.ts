@@ -6,21 +6,17 @@ export const Link = objectType({
         t.nonNull.int("id"); 
         t.nonNull.string("description"); 
         t.nonNull.string("url"); 
+        t.field("postedBy", {   // 1
+            type: "User",
+            resolve(parent, args, context) {  // 2
+                return context.prisma.link
+                    .findUnique({ where: { id: parent.id } })
+                    .postedBy();
+            },
+        });
     },
 });
 
-let links: NexusGenObjects["Link"][]= [   
-    {
-        id: 1,
-        url: "www.howtographql.com",
-        description: "Fullstack tutorial for GraphQL",
-    },
-    {
-        id: 2,
-        url: "graphql.org",
-        description: "GraphQL official website",
-    },
-];
 
 export const LinkQuery = extendType({  
     type: "Query",
@@ -28,7 +24,7 @@ export const LinkQuery = extendType({
         t.nonNull.list.nonNull.field("feed", {   
             type: "Link",
             resolve(parent, args, context, info) {    
-                return links;
+                return context.prisma.link.findMany();
             },
         });
         t.nonNull.list.nonNull.field("feedById", {
@@ -37,33 +33,42 @@ export const LinkQuery = extendType({
                 id: nonNull(stringArg()),
             },
             resolve(parent, args, context, info) {
-                return links.filter((link) => link.id === Number(args.id));
+                return context.prisma.link.findMany({
+                    where: {
+                        id: parseInt(args.id),
+                    },
+                });
             }
         });
     },
 });
 
 export const LinkMutation = extendType({  // 1
-    type: "Mutation",    
+    type: "Mutation",
     definition(t) {
-        t.nonNull.field("post", {  // 2
-            type: "Link",  
-            args: {   // 3
+        t.nonNull.field("post", {
+            type: "Link",
+            args: {
                 description: nonNull(stringArg()),
                 url: nonNull(stringArg()),
             },
-            
-            resolve(parent, args, context) {    
-                const { description, url } = args;  // 4
-                
-                let idCount = links.length + 1;  // 5
-                const link = {
-                    id: idCount,
-                    description: description,
-                    url: url,
-                };
-                links.push(link);
-                return link;
+            resolve(parent, args, context) {   
+                const { description, url } = args;
+                const { userId } = context;
+
+                if (!userId) {  // 1
+                    throw new Error("Cannot post without logging in.");
+                }
+
+                const newLink = context.prisma.link.create({
+                    data: {
+                        description,
+                        url,
+                        postedBy: { connect: { id: userId } },  // 2
+                    },
+                });
+
+                return newLink;
             },
         });
 
@@ -76,14 +81,16 @@ export const LinkMutation = extendType({  // 1
                 url: nonNull(stringArg()),
             },
             resolve(parent, args, context) {
-                const { id, description, url } = args;
-                const link = links.find((link) => link.id === Number(id));
-                if (link) {
-                    link.description = description;
-                    link.url = url;
-                }
-                return link;
-            }
+                return context.prisma.link.update({
+                    where: {
+                        id: parseInt(args.id),
+                    },
+                    data: {
+                        description: args.description,
+                        url: args.url,
+                    },
+                });
+            },
         });
 
         // Delete a link mutation
@@ -93,12 +100,11 @@ export const LinkMutation = extendType({  // 1
                 id: nonNull(stringArg()),
             },
             resolve(parent, args, context) {
-                const { id } = args;
-                const link = links.find((link) => link.id === Number(id));
-                if (link) {
-                    links = links.filter((link) => link.id !== Number(id));
-                }
-                return link;
+                return context.prisma.link.delete({
+                    where: {
+                        id: parseInt(args.id),
+                    },
+                });
             }
         });
     },
