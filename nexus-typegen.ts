@@ -179,6 +179,9 @@ export interface NexusGenArgTypes {
     }
   }
   Query: {
+    feed: { // args
+      filter?: string | null; // String
+    }
     feedById: { // args
       id: string; // String!
     }
